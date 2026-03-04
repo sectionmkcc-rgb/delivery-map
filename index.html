@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -10,11 +10,11 @@
     <style>
         /* 基礎設定 */
         body, html { margin: 0; padding: 0; height: 100%; width: 100%; font-family: "Microsoft JhengHei", Arial, sans-serif; overflow: hidden; }
-        .container { display: flex; height: 100vh; width: 100vw; position: relative; }
+        .container { display: flex; height: 100dvh; width: 100vw; position: relative; }
         #map { flex-grow: 1; height: 100%; width: 100%; z-index: 1; }
         #map.add-mode { cursor: crosshair; }
 
-        /* 全局載入遮罩 (雲端同步用) */
+        /* 全局載入遮罩 */
         #loading-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center;
@@ -26,13 +26,12 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* --- 搜尋欄 --- */
+        /* 搜尋欄 */
         .search-wrapper { position: absolute; top: 15px; left: 15px; z-index: 800; width: 350px; max-width: 85%; display: flex; flex-direction: column; }
         .search-box { display: flex; align-items: center; background: white; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.3); padding: 0 15px; height: 48px; }
         .search-icon { color: #555; font-size: 20px; margin-right: 10px; }
         #search-input { flex: 1; border: none; outline: none; font-size: 16px; height: 100%; background: transparent; }
         .clear-icon { cursor: pointer; color: #999; font-size: 18px; display: none;}
-        
         .search-results { background: white; margin-top: 5px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); max-height: 350px; overflow-y: auto; display: none;  }
         .search-item { padding: 12px 15px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 14px; color: #333; display: flex; align-items: center; }
         .search-item:hover { background-color: #f5f5f5; }
@@ -47,22 +46,18 @@
         }
         #sidebar.active { right: 0; }
         .close-btn { align-self: flex-end; cursor: pointer; font-size: 28px; color: #888; background: none; border: none; padding: 0; }
-        
         h2 { margin-top: 0; color: #333; margin-bottom: 10px; font-size: 22px;}
         .category-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; color: white; font-weight: bold; font-size: 0.95em; margin-bottom: 15px; }
         .review-text { line-height: 1.6; color: #333; margin-top: 10px; white-space: pre-wrap; flex-grow: 1; background: #fdfdfd; padding: 15px; border: 1px solid #eee; border-radius: 8px; font-size: 16px;}
-        
         .action-buttons { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap;}
         .btn { padding: 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; flex: 1; text-align: center; color: white; font-size: 16px;}
         .btn-nav { background-color: #4285F4; width: 100%; flex-basis: 100%; margin-bottom: 10px; font-size: 18px; padding: 15px;} 
         .btn-edit { background-color: #6c757d; }
         .btn-delete { background-color: #dc3545; }
         
-        /* 手動新增按鈕 */
+        /* 手動新增與定位按鈕 */
         #add-spot-btn { position: absolute; bottom: 30px; left: 30px; z-index: 800; padding: 15px 25px; background-color: #333; color: white; border-radius: 50px; font-size: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); border: none; cursor: pointer; }
         #add-spot-btn.active { background-color: #ff9800; color: #000; font-weight: bold;}
-
-        /* 定位按鈕 */
         #locate-btn { position: absolute; bottom: 100px; right: 10px; z-index: 800; width: 45px; height: 45px; background-color: white; border-radius: 50%; box-shadow: 0 2px 6px rgba(0,0,0,0.4); border: none; cursor: pointer; display: flex; justify-content: center; align-items: center; }
         #locate-btn svg { width: 26px; height: 26px; fill: #4285F4; }
 
@@ -77,16 +72,50 @@
         .btn-save { background-color: #28a745; font-size: 16px; padding: 12px;}
         .btn-cancel { background-color: #6c757d; font-size: 16px; padding: 12px;}
 
-        /* 圖例 */
-        .legend { position: absolute; bottom: 100px; left: 30px; background: rgba(255,255,255,0.95); padding: 12px 18px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); z-index: 500; font-size: 14px; font-weight: bold; pointer-events: none; }
-        .legend h4 { margin: 0 0 10px 0; font-size: 15px; border-bottom: 1px solid #ccc; padding-bottom: 5px; color: #333;}
+        /* 可收合圖例設定 */
+        .legend { 
+            position: absolute; bottom: 100px; left: 30px; background: rgba(255,255,255,0.95); 
+            padding: 12px 18px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); 
+            z-index: 500; font-size: 14px; font-weight: bold; 
+            pointer-events: auto; /* 確保可以被點擊 */
+            transition: all 0.3s ease; 
+        }
+        .legend-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; gap: 15px; }
+        .legend-header h4 { margin: 0; font-size: 15px; color: #333; }
+        .legend-toggle { transition: transform 0.3s ease; font-size: 12px; color: #666; }
         .dot { height: 14px; width: 14px; border-radius: 50%; display: inline-block; margin-right: 8px; vertical-align: -2px; }
         
+        /* 收合狀態樣式 */
+        .legend.collapsed { padding: 10px 15px; }
+        .legend.collapsed .legend-header { margin-bottom: 0; border-bottom: none; padding-bottom: 0; }
+        .legend.collapsed #legend-content { display: none; }
+        .legend.collapsed .legend-toggle { transform: rotate(-90deg); }
+
         .user-location-marker { width: 20px; height: 20px; background-color: #4285F4; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-        
-        /* 頂部按鈕區 */
         .top-actions { position: absolute; top: 15px; right: 15px; z-index: 800; display: flex; gap: 10px; }
         .top-btn { padding: 10px 15px; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+        /* 📱 手機版排版優化 */
+		@media (max-width: 768px) {
+            .search-wrapper { width: calc(100% - 30px); max-width: none; }
+            .top-actions { top: 75px; flex-direction: column; align-items: flex-end; gap: 8px; }
+            .top-btn { padding: 8px 15px; font-size: 14px; box-shadow: 0 2px 6px rgba(0,0,0,0.3);}
+            #sidebar { 
+                width: 85%; max-width: 320px; right: -100%; border-left: 1px solid #ddd;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.3); 
+            }
+            
+            /* 把左下角手動按鈕往上推 (改成 40px) */
+            #add-spot-btn { bottom: 40px; left: 15px; padding: 12px 20px; font-size: 15px; }
+            
+            /* 把右下角地圖預設的 +- 按鈕往上推 */
+            .leaflet-bottom { padding-bottom: 25px; }
+            
+            #locate-btn { bottom: 120px; right: 15px; }
+            .legend { bottom: 105px; left: 15px; font-size: 12px; padding: 10px; }
+            .legend-header h4 { font-size: 13px; margin-bottom: 0; }
+            .dot { height: 10px; width: 10px; }
+        }
     </style>
 </head>
 <body>
@@ -111,23 +140,28 @@
     <button id="add-spot-btn" onclick="toggleAddMode()">＋ 手動標記位置</button>
     
     <div class="top-actions">
-        <button class="top-btn" onclick="loadData()" style="background-color: #6f42c1;">🔄 重新載入雲端</button>
-        <button class="top-btn" onclick="importData()" style="background-color: #28a745;">📥 匯入秘笈</button>
-        <button class="top-btn" onclick="exportData()" style="background-color: #17a2b8;">📤 備份匯出</button>
+        <button class="top-btn" onclick="loadData()" style="background-color: #6f42c1;">🔄 雲端載入</button>
+        <button class="top-btn" onclick="importData()" style="background-color: #28a745;">📥 匯入</button>
+        <button class="top-btn" onclick="exportData()" style="background-color: #17a2b8;">📤 匯出</button>
     </div>
     
     <button id="locate-btn" title="回到我的位置" onclick="moveToCurrentLocation()">
         <svg viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/></svg>
     </button>
 
-    <div class="legend">
-        <h4>外送標記</h4>
-        <div style="margin-bottom:6px;"><span class="dot" style="background: #28a745;"></span> 友善好送</div>
-        <div style="margin-bottom:6px;"><span class="dot" style="background: #ffc107;"></span> 需換證 / 警衛嚴格</div>
-        <div style="margin-bottom:6px;"><span class="dot" style="background: #fd7e14;"></span> 迷宮 / 入口超難找</div>
-        <div style="margin-bottom:6px;"><span class="dot" style="background: #dc3545;"></span> 科技執法 / 易開單拖吊</div>
-        <div style="margin-top: 8px; border-top: 1px solid #ccc; padding-top:8px;">
-            <span class="dot" style="background: #6f42c1;"></span> 黑名單 / 特殊備註
+    <div class="legend collapsed" id="map-legend">
+        <div class="legend-header" onclick="toggleLegend()">
+            <h4>外送標記</h4>
+            <span class="legend-toggle">▼</span>
+        </div>
+        <div id="legend-content">
+            <div style="margin-bottom:6px;"><span class="dot" style="background: #28a745;"></span> 友善好送</div>
+            <div style="margin-bottom:6px;"><span class="dot" style="background: #ffc107;"></span> 需換證 / 警衛嚴格</div>
+            <div style="margin-bottom:6px;"><span class="dot" style="background: #fd7e14;"></span> 迷宮 / 入口超難找</div>
+            <div style="margin-bottom:6px;"><span class="dot" style="background: #dc3545;"></span> 科技執法 / 易開單拖吊</div>
+            <div style="margin-top: 8px; border-top: 1px solid #ccc; padding-top:8px;">
+                <span class="dot" style="background: #6f42c1;"></span> 黑名單 / 特殊備註
+            </div>
         </div>
     </div>
 
@@ -205,6 +239,12 @@
         'warning': { color: '#6f42c1', text: '🟣 特殊狀況/黑名單' }
     };
 
+    // --- 收合/展開圖例功能 ---
+    function toggleLegend() {
+        const legend = document.getElementById('map-legend');
+        legend.classList.toggle('collapsed');
+    }
+
     // --- UI 控制：顯示/隱藏載入中畫面 ---
     function showLoading(text) {
         document.getElementById('loading-text').innerText = text;
@@ -216,8 +256,7 @@
 
     // --- Google Sheets 讀取資料 ---
     async function loadData() {
-        if (GOOGLE_SHEETS_URL === "你的網頁應用程式網址填在這裡") {
-            // 如果你還沒填網址，就先讀取瀏覽器本身的紀錄 (防呆機制)
+        if (GOOGLE_SHEETS_URL === "") {
             const saved = localStorage.getItem('deliveryRiderNotes');
             if (saved) { try { spots = JSON.parse(saved); if (!Array.isArray(spots)) spots = []; } catch (e) { spots = []; } }
             renderMarkers();
@@ -230,12 +269,10 @@
             const data = await response.json();
             spots = data;
             
-            // 下載成功後，同時更新一份到手機本地端備用
             localStorage.setItem('deliveryRiderNotes', JSON.stringify(spots));
             renderMarkers();
         } catch (error) {
             console.error("雲端讀取失敗:", error);
-            // 萬一沒網路，退回讀取手機本地端的備用資料
             const saved = localStorage.getItem('deliveryRiderNotes');
             if (saved) { try { spots = JSON.parse(saved); } catch (e) { } }
             renderMarkers();
@@ -247,12 +284,10 @@
 
     // --- Google Sheets 寫入資料 ---
     async function saveData() {
-        // 1. 不管有沒有網路，先存一份在手機本地端，確保資料絕對不會丟失！
         localStorage.setItem('deliveryRiderNotes', JSON.stringify(spots));
         renderMarkers();
 
-        // 2. 如果沒設定雲端網址，就不繼續執行雲端同步了
-        if (GOOGLE_SHEETS_URL === "你的網頁應用程式網址填在這裡") return;
+        if (GOOGLE_SHEETS_URL === "") return;
 
         showLoading("同步儲存至雲端中...");
         try {
@@ -419,7 +454,7 @@
         if (!name) { alert('請輸入地點名稱！'); return; }
 
         const newData = {
-            id: editingId || Date.now().toString(), // 確保 ID 是字串
+            id: editingId || Date.now().toString(),
             name: name,
             coords: editingId ? spots.find(s=>s.id===editingId).coords : tempLatLng,
             category: document.getElementById('input-category').value,
@@ -435,7 +470,7 @@
         }
         
         closeModal();
-        saveData(); // 呼叫存檔，會同時存本地與雲端
+        saveData(); 
     }
 
     function editCurrentSpot() { if(currentSelectedId) openModal(currentSelectedId); }
@@ -444,7 +479,7 @@
         if (confirm("確定要刪除這個備註嗎？")) {
             spots = spots.filter(s => s.id !== currentSelectedId);
             closeSidebar();
-            saveData(); // 呼叫存檔，會同時存本地與雲端
+            saveData(); 
         }
     }
 
@@ -466,7 +501,7 @@
                 const imported = JSON.parse(e.target.result);
                 if(Array.isArray(imported)) {
                     spots = imported; 
-                    saveData(); // 把匯入的資料同步到雲端
+                    saveData(); 
                     alert("匯入成功！已同步至您的雲端資料庫。");
                 } else alert("檔案格式錯誤");
             } catch(err) { alert("讀取失敗"); }
